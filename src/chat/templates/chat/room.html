@@ -61,7 +61,9 @@
     }
 
     function createMessage(data) {
-	var author = data['author'];
+        var date = new Date(data.timestamp)
+        var timestamp = [date.toLocaleDateString(), date.toLocaleTimeString()].join(' ');
+	var message = '['+timestamp+'] '+data.author+': '+ data.content;
 	document.querySelector('#chat-log').value += (message + '\n');
     }
 
