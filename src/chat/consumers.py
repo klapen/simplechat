@@ -1,4 +1,5 @@
 import json
+import datetime
 from django.contrib.auth import get_user_model
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
@@ -37,26 +38,29 @@ class ChatConsumer(WebsocketConsumer):
     def new_message(self, data):
         msg = data['message']
         author = data['from']
-        author_user = User.objects.filter(username=author)[0]
 
         if(msg[0] == '/'):
             cmd = data['message'][1:].split('=')[0]
             payload = data['message'][1:].split('=')[1]
             if cmd in self.text_commands:
-
-                message = Message.objects.create(
-                    author = author_user,
-                    content = 'Bot %s message: %s' % (cmd, self.text_commands[cmd](payload))
-                )
+                content = {
+                    'command': 'new_message',
+                    'message' : {
+                        'author': 'Bot %s' % cmd,
+                        'content': self.text_commands[cmd](payload),
+                        'timestamp' : str(datetime.datetime.now())
+                    }
+                }
             else:
+                author_user = User.objects.filter(username=author)[0]
                 message = Message.objects.create(
                     author = author_user,
                     content = data['message']
                 )
-        content = {
-            'command': 'new_message',
-            'message': self.parse_to_json(message)
-        }
+                content = {
+                    'command': 'new_message',
+                    'message': self.parse_to_json(message)
+                }
         return self.send_chat_message(content)
 
     commands = {
@@ -95,9 +99,9 @@ class ChatConsumer(WebsocketConsumer):
         )
 
     def send_message(self, message):
-        self.send(text_data=json.dumps( message))
+        self.send(text_data=json.dumps(message))
 
     def chat_message(self, event):
         message = event['message']
-        self.send(text_data=json.dumps( message))
+        self.send(text_data=json.dumps(message))
 
