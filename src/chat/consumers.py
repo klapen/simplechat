@@ -4,9 +4,14 @@ from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from .models import Message
 
+from .bots import Bots
+
 User = get_user_model()
 
 class ChatConsumer(WebsocketConsumer):
+    text_commands = {
+        'stock': Bots.getStockQuote
+    }
 
     def parse_to_json(self, msg):
         return {
@@ -30,12 +35,24 @@ class ChatConsumer(WebsocketConsumer):
         self.send_message(content)
 
     def new_message(self, data):
+        msg = data['message']
         author = data['from']
         author_user = User.objects.filter(username=author)[0]
-        message = Message.objects.create(
-            author=author_user,
-            content=data['message']
-        )
+
+        if(msg[0] == '/'):
+            cmd = data['message'][1:].split('=')[0]
+            payload = data['message'][1:].split('=')[1]
+            if cmd in self.text_commands:
+
+                message = Message.objects.create(
+                    author = author_user,
+                    content = 'Bot %s message: %s' % (cmd, self.text_commands[cmd](payload))
+                )
+            else:
+                message = Message.objects.create(
+                    author = author_user,
+                    content = data['message']
+                )
         content = {
             'command': 'new_message',
             'message': self.parse_to_json(message)
