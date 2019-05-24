@@ -63,3 +63,4 @@ Where **stock_code** is the requested code and the **value** is the closing valu
 - v1.0: Functionality working with coupled stock quote bot
 - v2.0: Functionality working using a message broker for bots
 - v2.1: Fix bugs - Remove files and templates errors
+- v2.2: Fix bugs - Filter by room and automatic web socket reconnection
