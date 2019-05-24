@@ -28,7 +28,7 @@ class ChatConsumer(WebsocketConsumer):
         return result
 
     def fetch_messages(self, data):
-        messages = Message.last_50_messages()
+        messages = Message.last_50_messages(self.room_group_name)
         content = {
             'command': 'messages',
             'messages': self.messages_to_json(messages)
@@ -38,6 +38,7 @@ class ChatConsumer(WebsocketConsumer):
     def user_message(self, msg, author):
         author_user = User.objects.filter(username=author)[0]
         message = Message.objects.create(
+            room = self.room_group_name,
             author = author_user,
             content = msg
         )
@@ -52,7 +53,7 @@ class ChatConsumer(WebsocketConsumer):
         payload = msg[1:].split('=')[1]
 
         if cmd in self.text_commands:
-            self.text_commands[cmd].delay(self.room_group_name, payload)
+            return self.text_commands[cmd].delay(self.room_group_name, payload)
         else:
             return self.user_message(msg, author)
         
