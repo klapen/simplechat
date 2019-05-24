@@ -27,7 +27,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'chat',
     'channels',
-    'rest_framework'
+    'rest_framework',
+    'celery'
 ]
 
 MIDDLEWARE = [
@@ -72,6 +73,13 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# Celery settings
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
 
 # RestAPI
 REST_FRAMEWORK = {

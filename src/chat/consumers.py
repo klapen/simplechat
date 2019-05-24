@@ -5,13 +5,13 @@ from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from .models import Message
 
-from .bots import Bots
+import chat.tasks as bots
 
 User = get_user_model()
 
 class ChatConsumer(WebsocketConsumer):
     text_commands = {
-        'stock': Bots.getStockQuote
+        'stock': bots.getStockQuote
     }
 
     def parse_to_json(self, msg):
@@ -35,37 +35,52 @@ class ChatConsumer(WebsocketConsumer):
         }
         self.send_message(content)
 
+    def user_message(self, msg, author):
+        author_user = User.objects.filter(username=author)[0]
+        message = Message.objects.create(
+            author = author_user,
+            content = msg
+        )
+        content = {
+            'command': 'new_message',
+            'message': self.parse_to_json(message)
+        }
+        return self.send_chat_message(content)
+        
+    def command_message(self, msg, author):
+        cmd = msg[1:].split('=')[0]
+        payload = msg[1:].split('=')[1]
+
+        if cmd in self.text_commands:
+            self.text_commands[cmd].delay(self.room_group_name, payload)
+        else:
+            return self.user_message(msg, author)
+        
     def new_message(self, data):
         msg = data['message']
         author = data['from']
-
+        
         if(msg[0] == '/'):
-            cmd = data['message'][1:].split('=')[0]
-            payload = data['message'][1:].split('=')[1]
-            if cmd in self.text_commands:
-                content = {
-                    'command': 'new_message',
-                    'message' : {
-                        'author': 'Bot %s' % cmd,
-                        'content': self.text_commands[cmd](payload),
-                        'timestamp' : str(datetime.datetime.now())
-                    }
-                }
-            else:
-                author_user = User.objects.filter(username=author)[0]
-                message = Message.objects.create(
-                    author = author_user,
-                    content = data['message']
-                )
-                content = {
-                    'command': 'new_message',
-                    'message': self.parse_to_json(message)
-                }
-        return self.send_chat_message(content)
+            self.command_message(msg, author)
+        else:
+            return self.user_message(msg, author)
 
+    def bot_message(self, data):
+        msg = data['data']
+        content = {
+            'command': 'new_message',
+            'message' : {
+                'author': msg['from'],
+                'content': msg['message'],
+                'timestamp' : str(datetime.datetime.now())
+            }
+        }
+        return self.send_chat_message(content)
+    
     commands = {
         'fetch_messages': fetch_messages,
-        'new_message': new_message
+        'new_message': new_message,
+        'bot_message': bot_message
     }
 
     def connect(self):
