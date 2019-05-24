@@ -19,7 +19,7 @@ First of all, clone the repository, install requirements and initialize the data
 ```sh
 $ git clone https://github.com/klapen/simplechat.git
 $ cd simplechat/src
-$ pip install requirements.txt
+$ pip install -r requirements.txt
 $ python3 manage.py loaddata fixtures/users
 ```
 
